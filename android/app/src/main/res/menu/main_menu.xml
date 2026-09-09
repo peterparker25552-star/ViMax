@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res/auto">
+    <item
+        android:id="@+id/action_reload"
+        android:title="@string/action_reload"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_engine"
+        android:title="@string/action_engine"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_keep_awake"
+        android:title="@string/action_keep_awake"
+        android:checkable="true"
+        app:showAsAction="never" />
+</menu>

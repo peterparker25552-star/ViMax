@@ -1,6 +1,7 @@
 import {useEffect, useMemo, useState} from 'react';
 import {ChevronDown, ChevronUp, FileJson, Film, Files, Image as ImageIcon, Maximize2, Video, X} from 'lucide-react';
 import {getJsonArtifact} from './api';
+import {apiUrl} from './apiBase';
 import {
   activeRenderCheckpoint,
   deriveStoryboardReadiness,
@@ -460,7 +461,7 @@ function formatBytes(bytes: number) {
 
 function mediaUrl(artifact: Artifact): string {
   const separator = artifact.url.includes('?') ? '&' : '?';
-  return `${artifact.url}${separator}updated=${encodeURIComponent(artifact.updatedAt)}`;
+  return apiUrl(`${artifact.url}${separator}updated=${encodeURIComponent(artifact.updatedAt)}`);
 }
 
 function visualArtifactLabel(artifact: Artifact): string {

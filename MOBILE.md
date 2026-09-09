@@ -1,0 +1,68 @@
+# 📱 ViMax on Mobile (Android)
+
+ViMax is now an **installable Android app**. You get:
+
+- **A real APK** (`android/`) — install it from GitHub Actions or build it
+  yourself. Native shell: home-screen icon, file upload/download, offline
+  banner, keep-screen-on during renders, configurable engine address.
+- **An installable PWA** — open the ViMax workspace in Chrome and
+  *Add to Home screen*: manifest, icons, offline shell, and standalone
+  window without building anything.
+- **A phone-only setup** — the entire ViMax engine can run on the phone
+  itself inside [Termux](https://f-droid.org/en/packages/com.termux/); no
+  computer needed.
+
+Read [`android/README.md`](android/README.md) for the full walkthrough.
+
+---
+
+## How it fits together
+
+```
+┌─────────────────────────── Android phone ───────────────────────────┐
+│                                                                     │
+│   ViMax app (APK webview / installed PWA)                           │
+│   └── talks HTTP+SSE to →  ViMax engine bridge (Node, port 4173)    │
+│                              └── spawns →  ViMax agent (Python)     │
+│                                              └── calls AI providers │
+│                                                  (Gemini, Veo, …)   │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+The engine can run in the same Termux instance (address
+`http://127.0.0.1:4173`) or on any computer the phone can reach
+(`http://<computer-ip>:4173`). The web bridge now sends permissive CORS
+headers on `/api/*` (disable with `VIMAX_WEB_CORS=off`) so the app can
+connect across origins.
+
+## Quick start (phone-only)
+
+```bash
+# In Termux:
+git clone https://github.com/peterparker25552-star/ViMax.git
+cd ViMax
+bash android/install-termux.sh     # installs packages + Python deps
+bash android/start-vimax.sh        # engine + app on http://127.0.0.1:4173
+```
+
+Then open `http://127.0.0.1:4173` in Chrome → *Add to Home screen*, or
+install the APK from **GitHub Actions → Android APK**.
+
+Configure providers once in **Settings → Quick setup → Google Gemini +
+Veo**, paste your Google AI API key, **Save** — then create a project and
+describe the video you want. Everything else works exactly like the
+desktop ViMax: projects, agent chat, artifacts, storyboard previews, and
+final renders (tap a rendered video to watch or download it).
+
+## What changed in the repo for mobile
+
+| Change | Where |
+|---|---|
+| PWA manifest + service worker + icons | `web/public/` |
+| Install prompt, engine status card, safe-area & touch polish | `web/src/` |
+| CORS + LAN banner + `VIMAX_WEB_DIST` on the bridge | `web/server.mjs` |
+| Google Gemini + Veo provider routing (`image/video.provider: google`) | `agent_runtime/` |
+| Lazy OpenCV/scenedetect/moviepy imports (phone-friendly engine) | `agents/`, `utils/`, `interfaces/` |
+| Android APK project (webview shell) | `android/` |
+| Termux installer + start scripts | `android/*.sh` |
+| CI workflow that builds the APK | `.github/workflows/android-apk.yml` |

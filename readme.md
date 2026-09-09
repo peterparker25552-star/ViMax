@@ -213,8 +213,12 @@ ViMax now also includes an **Agents Loop + TUI** workflow for interactive planni
 ### 🖥️ **Environment**
 
 ```
-OS: Linux, Windows
+OS: Linux, Windows, Android (Termux)
 ```
+
+### 📱 **Mobile (Android)**
+
+ViMax ships as an installable Android app — a real APK plus an installable PWA — and the entire engine can run on the phone itself via Termux. See **[MOBILE.md](MOBILE.md)** for the walkthrough and [`android/README.md`](android/README.md) for APK builds.
 
 ### 📥 **Clone and Install**
 We use uv to manage the environment. For uv installation, please refer to the https://docs.astral.sh/uv/getting-started/installation/.

@@ -1,31 +1,32 @@
 import type {AgentConfig, AgentEvent, Artifact, JsonValue, Message, SessionSummary, WorkspaceUpload} from './types';
+import {apiUrl} from './apiBase';
 
 export async function getSessions() {
-  return request<{activeSessionId: string; sessions: SessionSummary[]}>('/api/sessions');
+  return request<{activeSessionId: string; sessions: SessionSummary[]}>(apiUrl('/api/sessions'));
 }
 
 export async function deleteSession(sessionId: string) {
-  return request<{activeSessionId: string; sessions: SessionSummary[]}>(`/api/sessions?session=${encodeURIComponent(sessionId)}`, {method: 'DELETE'});
+  return request<{activeSessionId: string; sessions: SessionSummary[]}>(apiUrl(`/api/sessions?session=${encodeURIComponent(sessionId)}`), {method: 'DELETE'});
 }
 
 export async function getAgentConfig() {
-  return request<AgentConfig>('/api/config');
+  return request<AgentConfig>(apiUrl('/api/config'));
 }
 
 export async function saveAgentConfig(config: AgentConfig) {
-  return request<AgentConfig>('/api/config', {method: 'PUT', body: JSON.stringify(config)});
+  return request<AgentConfig>(apiUrl('/api/config'), {method: 'PUT', body: JSON.stringify(config)});
 }
 
 export async function getHistory(sessionId: string) {
-  return request<{messages: Message[]}>(`/api/history?session=${encodeURIComponent(sessionId)}`);
+  return request<{messages: Message[]}>(apiUrl(`/api/history?session=${encodeURIComponent(sessionId)}`));
 }
 
 export async function getArtifacts(sessionId: string) {
-  return request<{artifacts: Artifact[]}>(`/api/artifacts?session=${encodeURIComponent(sessionId)}`);
+  return request<{artifacts: Artifact[]}>(apiUrl(`/api/artifacts?session=${encodeURIComponent(sessionId)}`));
 }
 
 export async function uploadWorkspaceFile(sessionId: string, file: File) {
-  const url = `/api/uploads?session=${encodeURIComponent(sessionId)}&name=${encodeURIComponent(file.name)}`;
+  const url = apiUrl(`/api/uploads?session=${encodeURIComponent(sessionId)}&name=${encodeURIComponent(file.name)}`);
   const response = await fetch(url, {
     method: 'POST',
     headers: {'Content-Type': file.type || 'application/octet-stream'},
@@ -38,7 +39,7 @@ export async function uploadWorkspaceFile(sessionId: string, file: File) {
 
 export async function getJsonArtifact(artifact: Artifact): Promise<JsonValue> {
   const separator = artifact.url.includes('?') ? '&' : '?';
-  const response = await fetch(`${artifact.url}${separator}updated=${encodeURIComponent(artifact.updatedAt)}`, {
+  const response = await fetch(apiUrl(`${artifact.url}${separator}updated=${encodeURIComponent(artifact.updatedAt)}`), {
     cache: 'no-store',
     headers: {Accept: 'application/json'},
   });
@@ -51,19 +52,19 @@ export async function getJsonArtifact(artifact: Artifact): Promise<JsonValue> {
 }
 
 export async function startAgent(options: {sessionId?: string; newSession?: boolean; projectName?: string}) {
-  return request<{ok: boolean}>('/api/agent/start', {method: 'POST', body: JSON.stringify(options)});
+  return request<{ok: boolean}>(apiUrl('/api/agent/start'), {method: 'POST', body: JSON.stringify(options)});
 }
 
 export async function sendMessage(text: string) {
-  return request<{ok: boolean}>('/api/messages', {method: 'POST', body: JSON.stringify({text})});
+  return request<{ok: boolean}>(apiUrl('/api/messages'), {method: 'POST', body: JSON.stringify({text})});
 }
 
 export async function stopAgent() {
-  return request<{ok: boolean}>('/api/agent/stop', {method: 'POST', body: '{}'});
+  return request<{ok: boolean}>(apiUrl('/api/agent/stop'), {method: 'POST', body: '{}'});
 }
 
 export function subscribeToEvents(onEvent: (event: AgentEvent) => void, onConnection: (connected: boolean) => void) {
-  const source = new EventSource('/api/events');
+  const source = new EventSource(apiUrl('/api/events'));
   source.onopen = () => onConnection(true);
   source.onerror = () => onConnection(false);
   source.onmessage = (message) => {

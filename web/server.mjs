@@ -343,9 +343,12 @@ async function streamArtifact(response, sessionId, relativePath, request) {
 }
 
 async function serveProductionApp(response, pathname) {
+  // VIMAX_WEB_DIST lets lightweight hosts (e.g. Termux on Android, where
+  // native build tools are unavailable) serve a prebuilt app bundle shipped
+  // elsewhere in the repository.
+  const distRoot = path.resolve(webRoot, process.env.VIMAX_WEB_DIST || 'dist');
   const requested = pathname === '/' ? 'index.html' : pathname.replace(/^\/+/, '');
-  const candidate = path.resolve(webRoot, 'dist', requested);
-  const distRoot = path.resolve(webRoot, 'dist');
+  const candidate = path.resolve(distRoot, requested);
   const safeCandidate = candidate.startsWith(`${distRoot}${path.sep}`) ? candidate : path.join(distRoot, 'index.html');
   const filePath = existsSync(safeCandidate) ? safeCandidate : path.join(distRoot, 'index.html');
   const body = await readFile(filePath);

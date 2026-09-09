@@ -1,0 +1,52 @@
+{
+  "name": "ViMax — AI Video Studio",
+  "short_name": "ViMax",
+  "description": "Agentic video generation: turn an idea, script, or novel into a finished video with storyboards, consistent characters, and AI rendering.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "any",
+  "background_color": "#0b0f18",
+  "theme_color": "#0b0f18",
+  "lang": "en",
+  "dir": "ltr",
+  "categories": ["productivity", "entertainment", "multimedia"],
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "New video project",
+      "short_name": "New project",
+      "description": "Start a new ViMax video project",
+      "url": "/?new=1",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

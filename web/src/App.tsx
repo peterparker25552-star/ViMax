@@ -626,7 +626,7 @@ function Sidebar({open, mobileOpen, sessions, selectedSessionId, activeView, onT
 function EmptyState({theme}: {theme: Theme}) {
   return (
     <section className="empty-state">
-      <img className="empty-state-logo" src={theme === 'dark' ? '/vimax-light.svg' : '/vimax-dark.svg'} alt="ViMax" />
+      <img className="empty-state-logo" src={theme === 'dark' ? 'vimax-light.svg' : 'vimax-dark.svg'} alt="ViMax" />
       <h1>What should we create?</h1>
     </section>
   );

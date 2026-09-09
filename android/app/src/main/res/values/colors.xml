@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="canvas">#ffffff</color>
+    <color name="canvas_dark">#0b0f18</color>
+    <color name="blue">#1769d2</color>
+    <color name="muted">#737b85</color>
+    <color name="ic_launcher_background">#0b0f18</color>
+</resources>

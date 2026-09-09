@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">ViMax</string>
+    <string name="engine_settings_title">Engine connection</string>
+    <string name="pref_bundled_ui">Use the app UI bundled in the APK (recommended)</string>
+    <string name="pref_engine_ui">Use the engine\'s own web UI</string>
+    <string name="engine_url_hint">Engine address, e.g. http://192.168.1.20:4173</string>
+    <string name="save">Save</string>
+    <string name="saved">Saved</string>
+    <string name="offline_message">ViMax engine unreachable. Start it with `vimax web` (Termux) and check the address.</string>
+    <string name="retry">Retry</string>
+    <string name="action_reload">Reload</string>
+    <string name="action_engine">Engine connection…</string>
+    <string name="action_keep_awake">Keep screen on while rendering</string>
+    <string name="download_started">Saving %1$s to Downloads…</string>
+    <string name="download_failed">Download failed: %1$s</string>
+</resources>
