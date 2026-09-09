@@ -210,20 +210,19 @@ class MainActivity : AppCompatActivity() {
             getString(R.string.pref_bundled_ui),
             getString(R.string.pref_engine_ui),
         )
-        val checked = intArrayOf(useBundledApp().compareTo(false))
+        var useBundledChoice = useBundledApp()
         AlertDialog.Builder(this)
             .setTitle(R.string.engine_settings_title)
             .setView(layout)
             .setMultiChoiceItems(options, booleanArrayOf(useBundledApp(), !useBundledApp())) { _, which, isChecked ->
-                checked[which] = if (isChecked) 1 else 0
+                if (which == 0) useBundledChoice = isChecked
             }
             .setPositiveButton(R.string.save) { _, _ ->
                 val url = engineInput.text.toString().trim().trimEnd('/')
-                val useBundled = checked[0] == 1 || checked[1] == 0
                 getSharedPreferences(PREFS, Context.MODE_PRIVATE)
                     .edit()
                     .putString(KEY_ENGINE_URL, if (url.isEmpty()) DEFAULT_ENGINE else url)
-                    .putBoolean(KEY_USE_BUNDLED, useBundled)
+                    .putBoolean(KEY_USE_BUNDLED, useBundledChoice)
                     .apply()
                 Toast.makeText(this, R.string.saved, Toast.LENGTH_SHORT).show()
                 loadApp()
