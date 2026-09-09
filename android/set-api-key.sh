@@ -115,6 +115,14 @@ image.setdefault("model", "gemini-3.1-flash-image")
 video.setdefault("provider", "google")
 video.setdefault("model", "veo-3.1-generate-preview")
 
+# A Groq key can never authenticate to Google. If one ended up in the
+# image/video slots (easy paste mistake), remove it so the engine falls
+# back to the Google key — otherwise image/video generation 400s.
+for section in (image, video):
+    if str(section.get("api_key") or "").startswith("gsk_"):
+        del section["api_key"]
+        print("removed a Groq key (gsk_…) from the Google image/video config — it would always fail there")
+
 # Reattach: on a fresh config the section dicts are detached from `data`.
 data["llm"] = llm
 data["image"] = image

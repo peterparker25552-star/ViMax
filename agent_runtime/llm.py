@@ -163,6 +163,13 @@ class OpenAICompatibleLLM:
         try:
             return await self.client.chat.completions.create(**kwargs)
         except Exception as exc:
+            if _is_thought_signature_error(exc):
+                # History replayed without Gemini's tool-call signatures
+                # (older sessions, compacted context). Google documents the
+                # dummy signature below to skip validation in this case.
+                logging.warning("Provider requires tool-call thought signatures; injecting them and retrying once")
+                kwargs["messages"] = _inject_dummy_thought_signatures(kwargs["messages"])
+                return await self.client.chat.completions.create(**kwargs)
             if self.reasoning_effort and _is_reasoning_effort_rejection(exc):
                 logging.warning("Provider rejected reasoning_effort=%r; continuing without it", self.reasoning_effort)
                 self.reasoning_effort = None
@@ -181,8 +188,57 @@ def _assistant_message_from_response(response: Any) -> AssistantMessage:
             arguments = json.loads(_message_value(function, "arguments") or "{}")
         except json.JSONDecodeError:
             arguments = {}
-        calls.append(ToolCall(id=_message_value(call, "id") or f"tool-{uuid4().hex[:12]}", name=_message_value(function, "name"), arguments=arguments))
+        calls.append(ToolCall(
+            id=_message_value(call, "id") or f"tool-{uuid4().hex[:12]}",
+            name=_message_value(function, "name"),
+            arguments=arguments,
+            thought_signature=_tool_call_thought_signature(call),
+        ))
     return AssistantMessage(text=text, tool_calls=calls, raw_message=_dump_message(message))
+
+
+def _tool_call_thought_signature(call: Any) -> str | None:
+    """Gemini (OpenAI-compat) signs tool calls at extra_content.google.
+
+    The OpenAI SDK keeps such unknown fields in the model's extra fields;
+    raw dicts (some relays) keep them as plain keys. Support both shapes.
+    """
+    extra = _message_value(call, "extra_content")
+    if extra is None:
+        extras = getattr(call, "model_extra", None)
+        if isinstance(extras, dict):
+            extra = extras.get("extra_content")
+    google = _message_value(extra, "google") if extra is not None else None
+    if google is None and isinstance(extra, dict):
+        google = extra.get("google")
+    signature = _message_value(google, "thought_signature") if google is not None else None
+    if signature is None and isinstance(google, dict):
+        signature = google.get("thought_signature")
+    return signature if isinstance(signature, str) and signature else None
+
+
+_THOUGHT_SIGNATURE_DUMMY = "skip_thought_signature_validator"
+
+
+def _is_thought_signature_error(exc: BaseException) -> bool:
+    text = str(exc).lower()
+    return "thought_signature" in text or "thoughtsignature" in text
+
+
+def _inject_dummy_thought_signatures(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    patched: list[dict[str, Any]] = []
+    for message in messages:
+        tool_calls = message.get("tool_calls") if isinstance(message, dict) else None
+        if not tool_calls:
+            patched.append(message)
+            continue
+        fixed_calls = []
+        for call in tool_calls:
+            if isinstance(call, dict) and not call.get("extra_content"):
+                call = {**call, "extra_content": {"google": {"thought_signature": _THOUGHT_SIGNATURE_DUMMY}}}
+            fixed_calls.append(call)
+        patched.append({**message, "tool_calls": fixed_calls})
+    return patched
 
 
 def _extract_message(response: Any) -> Any:

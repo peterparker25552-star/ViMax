@@ -12,9 +12,16 @@ class ToolCall:
     name: str
     arguments: dict[str, Any] = field(default_factory=dict)
     id: str = field(default_factory=lambda: f"tool-{uuid4().hex[:12]}")
+    # Gemini 3.x thinking models sign each tool call; the signature must be
+    # echoed back when the conversation is replayed, otherwise Google
+    # rejects the next request with 400 INVALID_ARGUMENT.
+    thought_signature: str | None = None
 
     def as_dict(self) -> dict[str, Any]:
-        return {"id": self.id, "name": self.name, "arguments": self.arguments}
+        payload = {"id": self.id, "name": self.name, "arguments": self.arguments}
+        if self.thought_signature:
+            payload["thought_signature"] = self.thought_signature
+        return payload
 
 
 @dataclass(slots=True)
