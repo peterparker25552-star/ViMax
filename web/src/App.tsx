@@ -775,12 +775,22 @@ function SettingsView() {
     }
   }
 
-  function applyPreset(preset: 'google' | 'openrouter' | 'yunwu') {
+  function applyPreset(preset: 'google' | 'google-lite' | 'groq' | 'openrouter' | 'yunwu') {
     if (!config) return;
     setStatus('');
     const base = {
+      'google-lite': {
+        llm: {model_provider: 'openai', model: 'gemini-3.5-flash-lite', reasoning_effort: 'low', base_url: 'https://generativelanguage.googleapis.com/v1beta/openai'},
+        image: {provider: 'google', model: 'gemini-3.1-flash-image', base_url: ''},
+        video: {provider: 'google', model: 'veo-3.1-generate-preview', base_url: ''},
+      },
       google: {
         llm: {model_provider: 'openai', model: 'gemini-3.6-flash', reasoning_effort: 'low', base_url: 'https://generativelanguage.googleapis.com/v1beta/openai'},
+        image: {provider: 'google', model: 'gemini-3.1-flash-image', base_url: ''},
+        video: {provider: 'google', model: 'veo-3.1-generate-preview', base_url: ''},
+      },
+      groq: {
+        llm: {model_provider: 'openai', model: 'openai/gpt-oss-120b', reasoning_effort: 'low', base_url: 'https://api.groq.com/openai/v1'},
         image: {provider: 'google', model: 'gemini-3.1-flash-image', base_url: ''},
         video: {provider: 'google', model: 'veo-3.1-generate-preview', base_url: ''},
       },
@@ -823,7 +833,9 @@ function SettingsView() {
         <MobileConnectionCard />
         <div className="preset-row" role="group" aria-label="Quick provider setup">
           <span>Quick setup</span>
+          <button type="button" onClick={() => applyPreset('google-lite')}>Google Flash-Lite (fast chat)</button>
           <button type="button" onClick={() => applyPreset('google')}>Google Gemini + Veo</button>
+          <button type="button" onClick={() => applyPreset('groq')}>Groq brain (fastest, free key)</button>
           <button type="button" onClick={() => applyPreset('openrouter')}>OpenRouter</button>
           <button type="button" onClick={() => applyPreset('yunwu')}>Yunwu</button>
         </div>

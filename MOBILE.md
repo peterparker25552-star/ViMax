@@ -56,10 +56,19 @@ final renders (tap a rendered video to watch or download it).
 
 ## Speed on phones
 
+- **Fast chat brains** (pick in `android/set-api-key.sh` or Settings):
+  - *Gemini Flash-Lite* — fastest Google model, works with the same free
+    Google key (`llm.model: gemini-3.5-flash-lite`).
+  - *Groq GPT-OSS 120B* — often faster than ChatGPT's first token; free key
+    at console.groq.com (no credit card). Set the Groq key under Agent LLM
+    and keep your Google key under Image/Video (they still use Google).
 - **Thinking models**: Gemini 3.x reasons silently for 30-60s before the
-  first token. The Termux setup script defaults `llm.reasoning_effort: low`
+  first token. Setup defaults `llm.reasoning_effort: low`
   (tune it in Settings → Agent LLM → *Reasoning effort*: `low` = fastest,
   blank = provider default).
+- **Images and video never get "ChatGPT-fast"** — they are different
+  models rendering pixels. For cheaper/faster video clips try
+  `video.model: veo-3.1-lite` if your key allows it.
 - **Don't background Termux**: Android freezes background apps — keep the
   Termux screen open (or split-screen) while using ViMax, disable battery
   optimization for Termux, and leave the wake-lock the start script takes.
