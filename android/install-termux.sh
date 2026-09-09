@@ -28,7 +28,23 @@ pkg install -y \
   git nodejs-lts \
   binutils build-essential rust \
   python-numpy python-pillow \
+  python-cryptography \
   ffmpeg
+
+# pip-built cryptography wheels fail to load on Termux
+# ("dlopen failed: cannot locate symbol ... _rust.abi3.so") because they are
+# not linked against Termux's Python. Termux's own package is built
+# correctly, so replace any broken pip copy with it.
+if ! python3 -c 'import cryptography' >/dev/null 2>&1; then
+  warn "cryptography is broken (common Termux/pip issue) — switching to the Termux build…"
+  pip uninstall -y cryptography >/dev/null 2>&1 || true
+  pkg install -y python-cryptography
+fi
+if python3 -c 'import cryptography' >/dev/null 2>&1; then
+  say "cryptography OK ($(python3 -c 'import cryptography; print(cryptography.__version__)'))."
+else
+  warn "cryptography is still unavailable — Google Gemini/Veo generation will fail."
+fi
 
 # Optional: enables multi-camera transition analysis (scene detection).
 if pkg install -y python-opencv 2>/dev/null; then
@@ -66,7 +82,8 @@ pip install \
   $OPTIONAL_PIP
 
 say "Verifying the engine boots (this is exactly what the app runs)…"
-VIMAX_LLM_API_KEY=boot-check python3 - <<'PY'
+BOOT_LOG="$(mktemp)"
+if VIMAX_LLM_API_KEY=boot-check python3 - >"$BOOT_LOG" 2>&1 <<'PY'
 import os, sys
 sys.path.insert(0, os.getcwd())
 from agent_runtime import build_runtime
@@ -75,6 +92,17 @@ print("  ok  agent runtime builds")
 import moviepy, google.genai  # noqa: E401
 print("  ok  video assembly + Google AI clients")
 PY
+then
+  cat "$BOOT_LOG"
+  rm -f "$BOOT_LOG"
+else
+  echo "$BOOT_LOG" | tail -20
+  rm -f "$BOOT_LOG"
+  warn "Engine boot failed. Common fixes:"
+  warn "  - cryptography dlopen error:  pip uninstall -y cryptography && pkg install -y python-cryptography"
+  warn "  - missing packages:           re-run this installer"
+  exit 1
+fi
 
 cat <<'DONE'
 

@@ -1,6 +1,24 @@
 import {readFile, rename, writeFile} from 'node:fs/promises';
 import path from 'node:path';
-import {parse, stringify} from 'yaml';
+
+// The 'yaml' npm package is only needed for reading/writing the provider
+// configuration. Importing it lazily keeps the ViMax server usable (chat,
+// artifacts, renders) even on hosts where the web dependencies were not
+// installed — e.g. a fresh clone on Android/Termux — and only the Settings
+// screen reports a clear remediation message.
+let yamlModule = null;
+
+async function loadYaml() {
+  if (yamlModule) return yamlModule;
+  try {
+    yamlModule = await import('yaml');
+    return yamlModule;
+  } catch {
+    throw new Error(
+      "The 'yaml' package is missing. From the repository's web/ directory run: npm install --omit=dev"
+    );
+  }
+}
 
 const SECTION_FIELDS = {
   llm: ['model_provider', 'model', 'base_url'],
@@ -40,6 +58,7 @@ export async function saveAgentConfig(repoRoot, input) {
 }
 
 async function loadConfig(repoRoot) {
+  const {parse} = await loadYaml();
   const configPath = path.join(repoRoot, 'configs', 'agent.local.yaml');
   let text = '';
   try {

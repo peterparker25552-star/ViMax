@@ -44,6 +44,18 @@ if [ -z "$PYTHON_BIN" ]; then
   exit 1
 fi
 
+# The web server needs the tiny 'yaml' npm package at runtime (Settings).
+# Install the production-only web dependencies once; everything else is
+# already bundled in android/app/src/main/assets/www.
+if [ ! -d "$REPO_DIR/web/node_modules/yaml" ]; then
+  echo "Installing ViMax web runtime dependencies (one time, small download)…"
+  if ! npm install --prefix "$REPO_DIR/web" --omit=dev --no-audit --no-fund; then
+    echo "WARNING: could not install web runtime dependencies."
+    echo "The app will still start, but Settings cannot save provider config."
+    echo "Fix later with:  cd \"$REPO_DIR/web\" && npm install --omit=dev"
+  fi
+fi
+
 export VIMAX_PYTHON_CMD="$PYTHON_BIN"
 
 echo "ViMax engine starting on http://$VIMAX_WEB_HOST:$VIMAX_WEB_PORT"
