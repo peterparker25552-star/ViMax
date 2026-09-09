@@ -345,8 +345,11 @@ async function streamArtifact(response, sessionId, relativePath, request) {
 async function serveProductionApp(response, pathname) {
   // VIMAX_WEB_DIST lets lightweight hosts (e.g. Termux on Android, where
   // native build tools are unavailable) serve a prebuilt app bundle shipped
-  // elsewhere in the repository.
-  const distRoot = path.resolve(webRoot, process.env.VIMAX_WEB_DIST || 'dist');
+  // elsewhere in the repository. Relative paths resolve against the repo root.
+  const configuredDist = process.env.VIMAX_WEB_DIST;
+  const distRoot = configuredDist
+    ? (path.isAbsolute(configuredDist) ? configuredDist : path.resolve(repoRoot, configuredDist))
+    : path.resolve(webRoot, 'dist');
   const requested = pathname === '/' ? 'index.html' : pathname.replace(/^\/+/, '');
   const candidate = path.resolve(distRoot, requested);
   const safeCandidate = candidate.startsWith(`${distRoot}${path.sep}`) ? candidate : path.join(distRoot, 'index.html');
