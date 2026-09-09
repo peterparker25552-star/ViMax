@@ -1,6 +1,5 @@
 import os
 import logging
-import cv2
 from typing import List, Tuple, Union, Optional
 from pydantic import BaseModel, Field
 from tenacity import retry, stop_after_attempt
@@ -205,6 +204,20 @@ class CameraImageGenerator:
         self,
         transition_video_path: str,
     ) -> ImageOutput:
+        # Video analysis dependencies are imported lazily so that lightweight
+        # environments (e.g. Android via Termux) can run the rest of the
+        # pipeline without OpenCV, scenedetect, or moviepy preinstalled.
+        try:
+            from scenedetect import open_video, SceneManager, split_video_ffmpeg
+            from scenedetect.detectors import ContentDetector
+            from moviepy import VideoFileClip
+        except ImportError as error:
+            raise RuntimeError(
+                "Camera image extraction requires optional video dependencies "
+                "(opencv/scenedetect/moviepy). Install them with: "
+                "pip install opencv-python scenedetect moviepy"
+            ) from error
+
         video = open_video(transition_video_path)
         scene_manager = SceneManager()
         scene_manager.add_detector(ContentDetector())

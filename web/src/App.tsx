@@ -3,8 +3,11 @@ import {
   ArrowUp,
   Brain,
   Braces,
+  Check,
   CircleStop,
   Clock3,
+  Copy,
+  Download,
   FilePenLine,
   FileText,
   Film,
@@ -21,6 +24,7 @@ import {
   Save,
   Search,
   Settings,
+  Share2,
   ListChecks,
   Terminal,
   Trash2,
@@ -40,6 +44,25 @@ import type {AgentConfig, AgentEvent, Artifact, ChatState, ConfigSection, Messag
 const CONTEXT_TARGET = 160_000;
 
 type WorkspaceView = 'workspace' | 'artifacts' | 'settings';
+
+// Deferred "install app" prompt captured from the browser. Kept at module
+// scope so both App and the settings card can reach it.
+let deferredInstallPrompt: (Event & {prompt: () => Promise<void>; userChoice: Promise<{outcome: string}>}) | null = null;
+
+function isStandaloneDisplay(): boolean {
+  return Boolean(
+    window.matchMedia?.('(display-mode: standalone)').matches ||
+    window.matchMedia?.('(display-mode: minimal-ui)').matches ||
+    (window.navigator as {standalone?: boolean}).standalone
+  );
+}
+
+function mobilePlatform(): 'ios' | 'android' | 'other' {
+  const ua = window.navigator.userAgent || '';
+  if (/iPhone|iPad|iPod/i.test(ua)) return 'ios';
+  if (/Android/i.test(ua)) return 'android';
+  return 'other';
+}
 
 export default function App() {
   const [sessions, setSessions] = useState<SessionSummary[]>([]);
@@ -85,6 +108,34 @@ export default function App() {
       // Theme still applies when persistence is unavailable.
     }
   }, [theme]);
+
+  // Capture the browser's install prompt so the Settings screen can offer a
+  // one-tap "Install app" action on Android/Chrome, Edge, and desktop.
+  useEffect(() => {
+    const onPrompt = (event: Event) => {
+      event.preventDefault();
+      deferredInstallPrompt = event as typeof deferredInstallPrompt;
+      window.dispatchEvent(new Event('vimax-install-available'));
+    };
+    const onInstalled = () => {
+      deferredInstallPrompt = null;
+      window.dispatchEvent(new Event('vimax-app-installed'));
+    };
+    window.addEventListener('beforeinstallprompt', onPrompt);
+    window.addEventListener('appinstalled', onInstalled);
+    return () => {
+      window.removeEventListener('beforeinstallprompt', onPrompt);
+      window.removeEventListener('appinstalled', onInstalled);
+    };
+  }, []);
+
+  // The manifest shortcut ("New video project") opens the new-project dialog.
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('new') === '1') {
+      window.history.replaceState({}, '', window.location.pathname);
+      openNewProjectDialog();
+    }
+  }, []);
 
   const refreshSessions = useCallback(async () => {
     const state = await getSessions();
@@ -724,6 +775,37 @@ function SettingsView() {
     }
   }
 
+  function applyPreset(preset: 'google' | 'openrouter' | 'yunwu') {
+    if (!config) return;
+    setStatus('');
+    const base = {
+      google: {
+        llm: {model_provider: 'openai', model: 'gemini-2.5-flash', base_url: 'https://generativelanguage.googleapis.com/v1beta/openai'},
+        image: {provider: 'google', model: 'gemini-2.5-flash-image', base_url: ''},
+        video: {provider: 'google', model: 'veo-3.1-generate-preview', base_url: ''},
+      },
+      openrouter: {
+        llm: {model_provider: 'openai', model: config.sections.llm.model, base_url: 'https://openrouter.ai/api/v1'},
+        image: {provider: 'openrouter', model: config.sections.image.model, base_url: 'https://openrouter.ai/api/v1'},
+        video: {provider: 'openrouter', model: config.sections.video.model, base_url: 'https://openrouter.ai/api/v1'},
+      },
+      yunwu: {
+        llm: {model_provider: 'openai', model: config.sections.llm.model, base_url: 'https://yunwu.ai/v1'},
+        image: {provider: 'yunwu', model: config.sections.image.model, base_url: 'https://yunwu.ai'},
+        video: {provider: 'yunwu', model: config.sections.video.model, base_url: 'https://yunwu.ai'},
+      },
+    }[preset];
+    setConfig({
+      sections: {
+        ...config.sections,
+        llm: {...config.sections.llm, ...base.llm},
+        image: {...config.sections.image, ...base.image},
+        video: {...config.sections.video, ...base.video},
+      },
+    });
+    setStatus('Preset applied — enter your API key, then Save');
+  }
+
   if (loading) return <div className="settings-loading">Loading configuration…</div>;
   if (!config) return <div className="settings-loading is-error">{status || 'Configuration unavailable'}</div>;
   return (
@@ -738,6 +820,13 @@ function SettingsView() {
         </div>
       </header>
       <div className="settings-sections">
+        <MobileConnectionCard />
+        <div className="preset-row" role="group" aria-label="Quick provider setup">
+          <span>Quick setup</span>
+          <button type="button" onClick={() => applyPreset('google')}>Google Gemini + Veo</button>
+          <button type="button" onClick={() => applyPreset('openrouter')}>OpenRouter</button>
+          <button type="button" onClick={() => applyPreset('yunwu')}>Yunwu</button>
+        </div>
         {CONFIG_SECTIONS.map((definition) => (
           <ConfigSectionEditor
             key={definition.key}
@@ -746,6 +835,119 @@ function SettingsView() {
             onChange={(field, value) => update(definition.key, field, value)}
           />
         ))}
+      </div>
+    </section>
+  );
+}
+
+function MobileConnectionCard() {
+  const origin = window.location.origin;
+  const platform = mobilePlatform();
+  const [engine, setEngine] = useState<'checking' | 'online' | 'offline'>('checking');
+  const [installable, setInstallable] = useState(Boolean(deferredInstallPrompt));
+  const [installed, setInstalled] = useState(isStandaloneDisplay());
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    const check = () => {
+      fetch('/api/health', {cache: 'no-store'})
+        .then((response) => !cancelled && setEngine(response.ok ? 'online' : 'offline'))
+        .catch(() => !cancelled && setEngine('offline'));
+    };
+    check();
+    const timer = window.setInterval(check, 30_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, []);
+
+  useEffect(() => {
+    const onAvailable = () => setInstallable(true);
+    const onInstalled = () => {
+      setInstalled(true);
+      setInstallable(false);
+    };
+    window.addEventListener('vimax-install-available', onAvailable);
+    window.addEventListener('vimax-app-installed', onInstalled);
+    return () => {
+      window.removeEventListener('vimax-install-available', onAvailable);
+      window.removeEventListener('vimax-app-installed', onInstalled);
+    };
+  }, []);
+
+  async function install() {
+    const prompt = deferredInstallPrompt;
+    if (!prompt) return;
+    try {
+      await prompt.prompt();
+      const choice = await prompt.userChoice;
+      if (choice?.outcome === 'accepted') setInstalled(true);
+    } catch {
+      // The user dismissed the dialog; nothing to do.
+    }
+    deferredInstallPrompt = null;
+    setInstallable(false);
+  }
+
+  async function copyAddress() {
+    try {
+      await navigator.clipboard.writeText(origin);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1_500);
+    } catch {
+      // Clipboard can be unavailable; the input stays selectable.
+    }
+  }
+
+  return (
+    <section className="config-section mobile-connection">
+      <header>
+        <h2>Mobile app</h2>
+        <p>Install ViMax on your phone and point it at this engine. Projects, chat, artifacts, and rendered videos stay in sync.</p>
+      </header>
+      <div className="mobile-connection-body">
+        <div className={`connection-status is-${engine}`}>
+          <span className="status-dot" aria-hidden="true" />
+          <span>
+            {engine === 'online' ? 'Engine connected' : engine === 'offline' ? 'Engine unreachable' : 'Checking engine…'}
+          </span>
+        </div>
+        <label className="engine-address">
+          <span>Engine address</span>
+          <div className="engine-address-row">
+            <input readOnly value={origin} onFocus={(event) => event.currentTarget.select()} spellCheck={false} />
+            <button type="button" className="icon-button" onClick={() => void copyAddress()} aria-label="Copy engine address" title="Copy engine address">
+              {copied ? <Check size={15} /> : <Copy size={15} />}
+            </button>
+          </div>
+          <small>Saved automatically. Point the app at the machine running <code>vimax web</code> (for Termux on this phone, keep <code>127.0.0.1</code>).</small>
+        </label>
+        {installed ? (
+          <p className="install-note"><Check size={15} /> ViMax is installed and runs like a native app on this device.</p>
+        ) : installable ? (
+          <button type="button" className="install-button" onClick={() => void install()}>
+            <Download size={16} /> Install ViMax on this device
+          </button>
+        ) : (
+          <div className="install-steps">
+            <strong>Add to home screen</strong>
+            {platform === 'ios' ? (
+              <ol>
+                <li>Open this page in Safari.</li>
+                <li>Tap <Share2 size={13} /> <em>Share</em>, then <em>Add to Home Screen</em>.</li>
+                <li>Launch ViMax from your home screen.</li>
+              </ol>
+            ) : (
+              <ol>
+                <li>Open the browser menu (⋮).</li>
+                <li>Tap <em>Add to Home screen</em> / <em>Install app</em>.</li>
+                <li>Launch ViMax from your home screen.</li>
+              </ol>
+            )}
+          </div>
+        )}
       </div>
     </section>
   );
@@ -762,6 +964,9 @@ function ConfigSectionEditor({definition, value, onChange}: {
       <div className="config-fields">
         {value.model_provider !== undefined && (
           <label><span>Model provider</span><input value={value.model_provider} onChange={(event) => onChange('model_provider', event.target.value)} /></label>
+        )}
+        {value.provider !== undefined && (
+          <label><span>Provider</span><input value={value.provider} onChange={(event) => onChange('provider', event.target.value)} placeholder="google, openrouter, or yunwu" /></label>
         )}
         <label><span>Model</span><input value={value.model} onChange={(event) => onChange('model', event.target.value)} /></label>
         <label className="config-field-wide"><span>Base URL</span><input value={value.base_url} onChange={(event) => onChange('base_url', event.target.value)} inputMode="url" /></label>

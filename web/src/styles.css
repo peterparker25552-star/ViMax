@@ -3023,3 +3023,219 @@ html[data-theme='dark'] .storyboard-panel > footer button:hover:not(:disabled) {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ---------------------------------------------------------------------------
+ * Android / iOS app polish
+ * - Safe-area insets for notches and gesture bars (viewport-fit=cover).
+ * - Larger touch targets and no iOS input zoom.
+ * - Mobile connection card shown in Settings.
+ * ------------------------------------------------------------------------- */
+
+.composer textarea {
+  font-size: 16px;
+}
+
+@media (max-width: 760px) {
+  .workspace-utility-bar {
+    top: max(10px, env(safe-area-inset-top));
+  }
+
+  .composer-zone {
+    padding-bottom: max(10px, env(safe-area-inset-bottom));
+  }
+
+  .sidebar {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .composer textarea {
+    font-size: 16px; /* prevents focus zoom on mobile browsers */
+  }
+
+  .icon-button,
+  .send-button,
+  .composer-add {
+    min-width: 40px;
+    min-height: 40px;
+  }
+
+  .send-button,
+  .composer-add {
+    width: 44px;
+    height: 44px;
+  }
+
+  .message-stream {
+    padding-bottom: 170px;
+  }
+}
+
+.mobile-connection .mobile-connection-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+.connection-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  align-self: flex-start;
+  padding: 7px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+}
+
+.connection-status .status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--faint);
+}
+
+.connection-status.is-online .status-dot {
+  background: var(--green);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--green) 22%, transparent);
+}
+
+.connection-status.is-offline .status-dot {
+  background: var(--red);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--red) 20%, transparent);
+}
+
+.engine-address {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.engine-address > span {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.engine-address-row {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.engine-address-row input {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13px;
+  color: var(--ink);
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.engine-address small {
+  line-height: 1.5;
+}
+
+.engine-address small code {
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+}
+
+.install-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  align-self: flex-start;
+  padding: 12px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  background: linear-gradient(140deg, #2f8fe0, #1769d2);
+  border: 0;
+  border-radius: 12px;
+  cursor: pointer;
+  box-shadow: 0 8px 22px rgba(23, 105, 210, 0.28);
+  transition: transform 140ms ease, box-shadow 140ms ease;
+}
+
+.install-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 26px rgba(23, 105, 210, 0.34);
+}
+
+.install-button:disabled {
+  opacity: 0.6;
+  cursor: default;
+  transform: none;
+}
+
+.install-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--green);
+}
+
+.install-steps {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.install-steps strong {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--ink);
+}
+
+.install-steps ol {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding-left: 20px;
+}
+
+.install-steps em {
+  display: inline-flex;
+  vertical-align: -2px;
+  font-style: normal;
+  color: var(--ink);
+}
+
+.preset-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.preset-row button {
+  padding: 7px 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink);
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: border-color 140ms ease, background 140ms ease;
+}
+
+.preset-row button:hover {
+  border-color: var(--blue);
+  background: color-mix(in srgb, var(--blue) 8%, var(--surface-soft));
+}

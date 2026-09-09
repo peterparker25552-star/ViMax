@@ -225,6 +225,7 @@ export function artifactContentType(filePath) {
     '.webm': 'video/webm',
     '.mov': 'video/quicktime',
     '.json': 'application/json; charset=utf-8',
+    '.webmanifest': 'application/manifest+json; charset=utf-8',
     '.txt': 'text/plain; charset=utf-8',
     '.md': 'text/markdown; charset=utf-8',
   }[extension] ?? 'application/octet-stream';

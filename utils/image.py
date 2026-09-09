@@ -3,7 +3,6 @@ import requests
 import base64
 import mimetypes
 from io import BytesIO
-import cv2
 
 from utils.retry import download_retry
 

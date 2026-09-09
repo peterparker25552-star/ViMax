@@ -1,5 +1,5 @@
 import base64
-import cv2
+
 from typing import List, Literal, Optional, Union
 from PIL import Image
 
@@ -54,6 +54,16 @@ class ImageOutput:
         Args:
             path (str): Path where the image will be saved.
         """
+        # cv2 is only needed for the numpy-array flavour of ImageOutput;
+        # import it lazily so lightweight installs (e.g. Termux on Android)
+        # can use the b64/url/pil formats without OpenCV.
+        try:
+            import cv2
+        except ImportError as error:
+            raise RuntimeError(
+                "Saving a numpy-array image requires OpenCV. "
+                "Install it with: pip install opencv-python"
+            ) from error
         cv2.imencode('.png', self.data)[1].tofile(path)
 
     def save(self, path: str) -> None:

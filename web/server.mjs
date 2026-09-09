@@ -1,6 +1,7 @@
 import {createReadStream, existsSync} from 'node:fs';
 import {readFile} from 'node:fs/promises';
 import {createServer} from 'node:http';
+import {networkInterfaces} from 'node:os';
 import path from 'node:path';
 import {spawn} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
@@ -20,6 +21,11 @@ const repoRoot = path.resolve(webRoot, '..');
 const isDev = process.argv.includes('--dev');
 const host = process.env.VIMAX_WEB_HOST || '127.0.0.1';
 const port = Number(process.env.VIMAX_WEB_PORT || 4173);
+// Cross-origin API access lets the ViMax Android app (which bundles its own
+// copy of the web app) talk to an engine running elsewhere on the device or
+// LAN. Disable with VIMAX_WEB_CORS=off.
+const corsMode = (process.env.VIMAX_WEB_CORS || 'on').toLowerCase();
+const corsEnabled = corsMode !== 'off' && corsMode !== 'false' && corsMode !== '0';
 const configuredUploadLimit = Number(process.env.VIMAX_WEB_UPLOAD_MAX_BYTES || 100 * 1024 * 1024);
 const uploadMaxBytes = Number.isFinite(configuredUploadLimit) && configuredUploadLimit > 0
   ? configuredUploadLimit
@@ -33,6 +39,12 @@ let vite = null;
 const server = createServer(async (request, response) => {
   const url = new URL(request.url || '/', `http://${request.headers.host || `${host}:${port}`}`);
   try {
+    if (url.pathname.startsWith('/api/')) applyCors(request, response);
+    if (corsEnabled && request.method === 'OPTIONS') {
+      response.writeHead(204);
+      response.end();
+      return;
+    }
     if (url.pathname === '/api/events' && request.method === 'GET') {
       return openEventStream(request, response);
     }
@@ -134,6 +146,10 @@ if (isDev) {
 
 server.listen(port, host, () => {
   console.log(`ViMax Web: http://${host}:${port}`);
+  for (const address of lanAddresses()) {
+    console.log(`ViMax Web (LAN): http://${address}:${port}  <- open this on a phone on the same network`);
+  }
+  if (corsEnabled) console.log('ViMax Web: cross-origin API access enabled (VIMAX_WEB_CORS=off to disable)');
 });
 
 process.on('SIGINT', shutdown);
@@ -293,7 +309,30 @@ function sendJson(response, status, payload) {
   response.end(JSON.stringify(payload));
 }
 
-async function streamArtifact(response, sessionId, relativePath) {
+// Attach CORS headers to every API request so the ViMax Android app (which
+// bundles its own copy of the web app under its own origin) can talk to an
+// engine running elsewhere on the device or on the LAN.
+function applyCors(request, response) {
+  if (!corsEnabled) return;
+  const origin = request.headers.origin || '';
+  response.setHeader('Access-Control-Allow-Origin', origin || '*');
+  response.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  response.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept');
+  response.setHeader('Access-Control-Max-Age', '86400');
+  response.setHeader('Vary', 'Origin');
+}
+
+function lanAddresses() {
+  const addresses = [];
+  for (const list of Object.values(networkInterfaces())) {
+    for (const entry of list || []) {
+      if (entry.family === 'IPv4' && !entry.internal) addresses.push(entry.address);
+    }
+  }
+  return addresses;
+}
+
+async function streamArtifact(response, sessionId, relativePath, request) {
   const filePath = resolveArtifactPath(repoRoot, sessionId, relativePath);
   if (!existsSync(filePath)) return sendJson(response, 404, {error: 'Artifact not found'});
   response.writeHead(200, {
