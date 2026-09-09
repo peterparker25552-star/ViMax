@@ -110,10 +110,13 @@ ViMax is installed on this phone. ✔
 
 Next steps
 ----------
-1. Start the engine + web app:
+1. Save your Google AI API key (from https://aistudio.google.com/apikey):
+     bash android/set-api-key.sh
+
+2. Start the engine + web app:
      bash android/start-vimax.sh
 
-2. Open http://127.0.0.1:4173 in Chrome on this phone.
+3. Open http://127.0.0.1:4173 in Chrome on this phone.
 
 3. Add it to your home screen: Chrome menu (⋮) -> "Add to Home screen".
 
