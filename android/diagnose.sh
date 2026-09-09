@@ -75,13 +75,21 @@ else:
     for section in sections:
         model = values.get((section, "model"), "")
         provider = values.get((section, "provider"), values.get((section, "model_provider"), ""))
+        base = values.get((section, "base_url"), "")
         key = values.get((section, "api_key"), "")
-        status = "key saved" if key else "NO KEY"
         if key:
             any_key = True
-        print(f"  {section:9s} provider={provider or '-':12s} model={model or '-':38s} {status}")
+            # Show only the prefix family — that reveals a swapped key
+            # (Google keys start with AIza, Groq keys with gsk_) safely.
+            kind = "Google" if key.startswith("AIza") else "Groq" if key.startswith("gsk_") else "unknown format"
+            keyinfo = f"key={key[:4]}…{key[-4:]} ({kind}, {len(key)} chars)"
+        else:
+            keyinfo = "no key (falls back to the llm key)"
+        target = base or ("Google direct" if provider == "google" else provider or "-")
+        print(f"  {section:9s} -> {target[:42]:42s} {keyinfo}")
     if not any_key:
-        print("  FAIL no API key saved anywhere — Settings -> Quick setup -> Google Gemini + Veo -> paste key -> Save")
+        print("  FAIL no API key saved anywhere - run: bash android/set-api-key.sh")
+    print("  note: a Google key (AIza…) must go with Google URLs; a Groq key (gsk_…) only with api.groq.com")
     env_key = os.environ.get("VIMAX_LLM_API_KEY") or os.environ.get("VIMAX_API_KEY")
     if env_key:
         print(f"  env      VIMAX_LLM_API_KEY is also set in this shell")

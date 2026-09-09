@@ -31,6 +31,14 @@ if [ "$BRAIN" = "3" ]; then
   echo
 fi
 
+# Catch the most common mistake up front: keys pasted into the wrong slot.
+case "$GOOGLE_KEY" in
+  gsk_*) echo "That's a Groq key (it starts with 'gsk_'). The GOOGLE key starts with 'AIza' — get/copy it at https://aistudio.google.com/apikey"; exit 1 ;;
+esac
+case "$GROQ_KEY" in
+  AIza*) echo "That's a Google key (it starts with 'AIza'). The GROQ key starts with 'gsk_' — get/copy it at https://console.groq.com/keys"; exit 1 ;;
+esac
+
 BRAIN="$BRAIN" GOOGLE_KEY="$GOOGLE_KEY" GROQ_KEY="$GROQ_KEY" python3 - <<'PY'
 import os
 from pathlib import Path
@@ -115,9 +123,16 @@ data["video"] = video
 path.parent.mkdir(parents=True, exist_ok=True)
 path.write_text(yaml.safe_dump(data, sort_keys=False), encoding="utf-8")
 
+def mask(value: str) -> str:
+    if not value:
+        return "(no key — reuses the LLM key)"
+    return f"{value[:4]}…{value[-4:]} ({len(value)} chars)"
+
 print()
 print(f"Saved. chat brain: {brain_label}")
-print(f"       images: {image.get('model')} | videos: {video.get('model')}")
+print(f"       llm key:    {mask(str(llm.get('api_key') or ''))} -> {llm.get('base_url')}")
+print(f"       images:     {image.get('model')} with key {mask(str(image.get('api_key') or ''))} (Google)")
+print(f"       videos:     {video.get('model')} with key {mask(str(video.get('api_key') or ''))} (Google)")
 print("Tips: for faster video clips try video model 'veo-3.1-lite' in Settings (if your key allows it).")
 print("Key(s) stored in configs/agent.local.yaml (private; git ignores it).")
 PY
