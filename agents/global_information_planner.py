@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 from langchain.output_parsers import PydanticOutputParser
 from interfaces import Event, Scene
 from interfaces import CharacterInScene, CharacterInEvent, CharacterInNovel
-from tenacity import retry, stop_after_attempt
+from tenacity import retry, stop_after_attempt, wait_exponential
 
 
 system_prompt_template_merge_characters_across_scenes_in_event = \

@@ -6,7 +6,7 @@ from langchain.chat_models.base import BaseChatModel
 from langchain.chat_models import init_chat_model
 from pydantic import BaseModel, Field
 from typing import List
-from tenacity import retry, stop_after_attempt
+from tenacity import retry, stop_after_attempt, wait_exponential
 from interfaces import CharacterInScene
 from langchain_core.messages import HumanMessage, SystemMessage
 

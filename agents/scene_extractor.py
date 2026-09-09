@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 from typing import List, Optional, Literal, Tuple, Dict
 from langchain_core.output_parsers import PydanticOutputParser
 from utils.robust_json_parser import TrailingCommaTolerantPydanticOutputParser as PydanticOutputParser
-from tenacity import retry, stop_after_attempt
+from tenacity import retry, stop_after_attempt, wait_exponential
 import logging
 
 system_prompt_template_get_next_scene = \
