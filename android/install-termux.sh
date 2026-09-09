@@ -3,13 +3,13 @@
 # ViMax on Android — one-shot installer for the Termux app.
 #
 #   1. Install Termux from F-Droid (https://f-droid.org/en/packages/com.termux/).
-#   2. Copy this repository onto the phone (or clone it), then run:
+#   2. Get this repository onto the phone, then run:
 #        bash android/install-termux.sh
 #
-# The script installs Termux packages, the ViMax Python engine dependencies
-# (all API clients — no heavy native ML stacks), and verifies the setup.
-# Nothing is uploaded anywhere; generation calls the AI providers you
-# configure (Google Gemini + Veo by default).
+# The script installs Termux packages and the ViMax Python engine
+# dependencies (all API clients — nothing heavy, no torch). Nothing is
+# uploaded anywhere; generation calls the AI providers you configure
+# (Google Gemini + Veo by default).
 #
 set -euo pipefail
 
@@ -30,6 +30,15 @@ pkg install -y \
   python-numpy python-pillow \
   ffmpeg
 
+# Optional: enables multi-camera transition analysis (scene detection).
+if pkg install -y python-opencv 2>/dev/null; then
+  say "OpenCV installed — camera-transition analysis enabled."
+  OPTIONAL_PIP="scenedetect"
+else
+  warn "python-opencv unavailable; multi-camera transitions will be skipped (everything else works)."
+  OPTIONAL_PIP=""
+fi
+
 REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$REPO_DIR"
 say "ViMax repository: $REPO_DIR"
@@ -38,50 +47,57 @@ say "Upgrading Python tooling…"
 pip install --upgrade pip setuptools wheel
 
 say "Installing ViMax Python dependencies…"
-warn "pydantic-core and tiktoken compile native code with Rust — this can take 15-40 minutes on a phone. It only happens once."
+warn "pydantic-core compiles native code with Rust — 10-40 minutes on a phone, once only."
+# Versions mirror the repository's uv.lock so behaviour matches desktop.
 pip install \
   "openai>=1.95.0" \
   "aiohttp>=3.12.14" \
   "chardet>=5.2.0" \
-  "google-genai>=1.47.0" \
-  "langchain>=0.3.26" \
-  "langchain-community>=0.3.27" \
-  "langchain-openai>=0.3.27" \
-  "langchain-text-splitters" \
+  "google-genai==1.47.0" \
+  "langchain==0.3.26" \
+  "langchain-community==0.3.27" \
+  "langchain-openai==0.3.27" \
+  "langchain-text-splitters==0.3.8" \
+  "moviepy==2.2.1" \
+  "pydantic>=2" \
   "pyyaml>=6.0.2" \
   "requests>=2.32.4" \
-  "tenacity>=9.1.2"
+  "tenacity>=9.1.2" \
+  $OPTIONAL_PIP
 
-say "Checking the engine imports cleanly…"
-python3 - <<'PY'
-import importlib
-for module in ("openai", "aiohttp", "langchain", "google.genai", "yaml", "tenacity", "PIL"):
-    importlib.import_module(module)
-    print(f"  ok  {module}")
+say "Verifying the engine boots (this is exactly what the app runs)…"
+VIMAX_LLM_API_KEY=boot-check python3 - <<'PY'
+import os, sys
+sys.path.insert(0, os.getcwd())
+from agent_runtime import build_runtime
+build_runtime(".")
+print("  ok  agent runtime builds")
+import moviepy, google.genai  # noqa: E401
+print("  ok  video assembly + Google AI clients")
 PY
 
 cat <<'DONE'
 
-ViMax is installed on this phone.
+ViMax is installed on this phone. ✔
 
 Next steps
 ----------
 1. Start the engine + web app:
      bash android/start-vimax.sh
 
-2. Open the workspace in this phone's browser:
-     http://127.0.0.1:4173
+2. Open http://127.0.0.1:4173 in Chrome on this phone.
 
-3. Install the home-screen app: open the same address in Chrome,
-   menu (⋮) -> "Add to Home screen" / "Install app".
+3. Add it to your home screen: Chrome menu (⋮) -> "Add to Home screen".
 
-4. Configure AI providers in the app's Settings screen
-   (Google Gemini + Veo quick-setup preset included) or edit
-   configs/agent.local.yaml directly.
+4. In the app: Settings -> Quick setup -> "Google Gemini + Veo",
+   paste your Google AI API key (https://aistudio.google.com/apikey),
+   then Save. Create a project and describe your video!
 
 Notes
 -----
-- opencv/scenedetect are optional in this build; multi-camera
-  transition analysis is skipped automatically when absent.
-- For the full feature set on a computer, keep using: uv sync
+- Keep Termux running in the background (don't swipe it away); the start
+  script takes a wake-lock so Android won't kill the engine.
+- Idea2Video and Script2Video work fully on the phone. Novel2Video needs
+  the faiss library, which is not available on Termux — run novel
+  projects on a computer instead.
 DONE
