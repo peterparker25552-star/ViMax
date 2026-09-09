@@ -780,7 +780,7 @@ function SettingsView() {
     setStatus('');
     const base = {
       google: {
-        llm: {model_provider: 'openai', model: 'gemini-3.6-flash', base_url: 'https://generativelanguage.googleapis.com/v1beta/openai'},
+        llm: {model_provider: 'openai', model: 'gemini-3.6-flash', reasoning_effort: 'low', base_url: 'https://generativelanguage.googleapis.com/v1beta/openai'},
         image: {provider: 'google', model: 'gemini-3.1-flash-image', base_url: ''},
         video: {provider: 'google', model: 'veo-3.1-generate-preview', base_url: ''},
       },
@@ -967,6 +967,9 @@ function ConfigSectionEditor({definition, value, onChange}: {
         )}
         {value.provider !== undefined && (
           <label><span>Provider</span><input value={value.provider} onChange={(event) => onChange('provider', event.target.value)} placeholder="google, openrouter, or yunwu" /></label>
+        )}
+        {value.reasoning_effort !== undefined && (
+          <label><span>Reasoning effort</span><input value={value.reasoning_effort} onChange={(event) => onChange('reasoning_effort', event.target.value)} placeholder="low = fastest replies (blank = default)" /></label>
         )}
         <label><span>Model</span><input value={value.model} onChange={(event) => onChange('model', event.target.value)} /></label>
         <label className="config-field-wide"><span>Base URL</span><input value={value.base_url} onChange={(event) => onChange('base_url', event.target.value)} inputMode="url" /></label>

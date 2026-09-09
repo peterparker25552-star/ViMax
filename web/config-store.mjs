@@ -21,7 +21,7 @@ async function loadYaml() {
 }
 
 const SECTION_FIELDS = {
-  llm: ['model_provider', 'model', 'base_url'],
+  llm: ['model_provider', 'reasoning_effort', 'model', 'base_url'],
   image: ['provider', 'model', 'base_url'],
   video: ['provider', 'model', 'base_url'],
   embedding: ['model_provider', 'model', 'base_url'],
@@ -37,6 +37,7 @@ export async function saveAgentConfig(repoRoot, input) {
   if (!input || typeof input !== 'object' || !input.sections || typeof input.sections !== 'object') {
     throw new Error('Configuration sections are required');
   }
+  const {stringify} = await loadYaml();
   const {configPath, payload} = await loadConfig(repoRoot);
   for (const [section, fields] of Object.entries(SECTION_FIELDS)) {
     const update = input.sections[section];

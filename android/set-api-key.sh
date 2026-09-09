@@ -77,6 +77,7 @@ if current_image in MIGRATIONS["image"] - {"gemini-3.1-flash-image"}:
 path.parent.mkdir(parents=True, exist_ok=True)
 path.write_text(yaml.safe_dump(data, sort_keys=False), encoding="utf-8")
 print(f"Saved. providers: llm={llm['model']} | image={image['model']} | video={video['model']}")
+print(f"Speed: reasoning_effort={llm.get('reasoning_effort') or 'provider default'} (low = fast replies)")
 print("Key stored in configs/agent.local.yaml (kept private; git ignores it).")
 PY
 

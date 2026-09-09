@@ -58,6 +58,15 @@ def llm_base_url(workspace_root: str | Path = ".") -> str:
     return config_value("llm", "base_url", ["VIMAX_LLM_BASE_URL"], DEFAULT_LLM_BASE_URL, workspace_root)
 
 
+def llm_reasoning_effort(workspace_root: str | Path = ".") -> str:
+    """Optional reasoning effort for thinking models (e.g. 'low' on phones).
+
+    Thinking models can spend 30-60+ seconds reasoning before the first
+    token; 'low' trades a little depth for much faster replies.
+    """
+    return config_value("llm", "reasoning_effort", ["VIMAX_LLM_REASONING_EFFORT"], "", workspace_root)
+
+
 def llm_api_key(workspace_root: str | Path = ".") -> str:
     return config_value("llm", "api_key", ["VIMAX_LLM_API_KEY", "VIMAX_API_KEY"], "", workspace_root)
 

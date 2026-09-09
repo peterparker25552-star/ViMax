@@ -9,13 +9,27 @@ from uuid import uuid4
 
 from openai import APIConnectionError, APITimeoutError, AsyncOpenAI
 
-from .config import llm_api_key, llm_base_url, llm_model
+from .config import llm_api_key, llm_base_url, llm_model, llm_reasoning_effort
 from .models import ToolCall
 
 
 LLM_MAX_ATTEMPTS = 3
 LLM_RETRY_BACKOFF_SECONDS = (1.0, 4.0)
 LLM_REQUEST_TIMEOUT_SECONDS = 300.0
+
+
+def _is_reasoning_effort_rejection(exc: BaseException) -> bool:
+    """True when the provider answered 400 specifically about reasoning_effort."""
+    status = getattr(exc, "status_code", None)
+    if status is not None:
+        try:
+            status = int(status)
+        except (TypeError, ValueError):
+            return False
+        if status != 400:
+            return False
+    text = str(exc).lower()
+    return "reasoning_effort" in text or "reasoning effort" in text
 
 
 def _is_retryable_llm_error(exc: BaseException) -> bool:
@@ -48,6 +62,10 @@ class OpenAICompatibleLLM:
         if not self.api_key:
             raise RuntimeError("VIMAX_LLM_API_KEY is required for the agent LLM client")
         self.client = AsyncOpenAI(api_key=self.api_key, base_url=self.base_url, timeout=LLM_REQUEST_TIMEOUT_SECONDS)
+        # Optional reasoning control for thinking models (e.g. Gemini 3.x):
+        # 'low' cuts 30-60s of hidden reasoning to a few seconds. Dropped
+        # automatically if the provider rejects the parameter.
+        self.reasoning_effort = (llm_reasoning_effort() or "").strip().lower() or None
 
     async def complete(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]]) -> AssistantMessage:
         shape_attempts = [
@@ -89,7 +107,17 @@ class OpenAICompatibleLLM:
             kwargs["tools"] = tools
         if tool_choice:
             kwargs["tool_choice"] = tool_choice
-        return await self.client.chat.completions.create(**kwargs)
+        if self.reasoning_effort:
+            kwargs["reasoning_effort"] = self.reasoning_effort
+        try:
+            return await self.client.chat.completions.create(**kwargs)
+        except Exception as exc:
+            if self.reasoning_effort and _is_reasoning_effort_rejection(exc):
+                logging.warning("Provider rejected reasoning_effort=%r; continuing without it", self.reasoning_effort)
+                self.reasoning_effort = None
+                kwargs.pop("reasoning_effort", None)
+                return await self.client.chat.completions.create(**kwargs)
+            raise
 
 
 def _assistant_message_from_response(response: Any) -> AssistantMessage:

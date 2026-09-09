@@ -100,27 +100,36 @@ fi
 echo
 
 if [ "${1:-}" = "--test-api" ]; then
-  say "Live LLM test call (tiny, uses your saved key)"
+  say "Live LLM test call (tiny, uses your saved key - measures latency)"
   python3 - <<'PY'
-import asyncio, os, sys
+import asyncio, os, sys, time
 sys.path.insert(0, os.getcwd())
 os.environ.setdefault("VIMAX_LLM_API_KEY", "")
 from agent_runtime import config
 model, base_url, key = config.llm_model("."), config.llm_base_url("."), config.llm_api_key(".")
+effort = config.llm_reasoning_effort(".")
 if not key:
     print("  FAIL no LLM API key saved")
     sys.exit(0)
 from openai import AsyncOpenAI
 async def main():
-    client = AsyncOpenAI(api_key=key, base_url=base_url, timeout=30)
+    client = AsyncOpenAI(api_key=key, base_url=base_url, timeout=60)
     try:
-        r = await client.chat.completions.create(
+        t0 = time.perf_counter()
+        kwargs = dict(
             model=model,
             messages=[{"role": "user", "content": "Reply with the single word: OK"}],
             max_completion_tokens=2000,
         )
+        if effort:
+            kwargs["reasoning_effort"] = effort
+        r = await client.chat.completions.create(**kwargs)
+        dt = time.perf_counter() - t0
         text = (r.choices[0].message.content or "").strip()
-        print(f"  ok   {model} replied: {text[:40]!r}")
+        print(f"  ok   {model} replied: {text[:40]!r} in {dt:.1f}s (reasoning_effort={effort or 'default'})")
+        if dt > 25:
+            print("       slow: Google needed >25s for a trivial prompt - that is")
+            print("       network latency to Google from your connection, not ViMax.")
     except Exception as e:
         msg = str(e).splitlines()[0][:220]
         print(f"  FAIL {model} via {base_url}")

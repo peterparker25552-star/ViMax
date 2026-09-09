@@ -54,6 +54,20 @@ describe the video you want. Everything else works exactly like the
 desktop ViMax: projects, agent chat, artifacts, storyboard previews, and
 final renders (tap a rendered video to watch or download it).
 
+## Speed on phones
+
+- **Thinking models**: Gemini 3.x reasons silently for 30-60s before the
+  first token. The Termux setup script defaults `llm.reasoning_effort: low`
+  (tune it in Settings → Agent LLM → *Reasoning effort*: `low` = fastest,
+  blank = provider default).
+- **Don't background Termux**: Android freezes background apps — keep the
+  Termux screen open (or split-screen) while using ViMax, disable battery
+  optimization for Termux, and leave the wake-lock the start script takes.
+- **First message after starting the engine is slow**: the AI stack loads
+  on first use; later replies are much faster.
+- **Measure it**: `bash android/diagnose.sh --test-api` prints how long
+  Google itself takes to answer a trivial prompt from your network.
+
 ## What changed in the repo for mobile
 
 | Change | Where |

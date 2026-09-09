@@ -60,5 +60,11 @@ export VIMAX_PYTHON_CMD="$PYTHON_BIN"
 
 echo "ViMax engine starting on http://$VIMAX_WEB_HOST:$VIMAX_WEB_PORT"
 echo "Open on this phone:  http://127.0.0.1:$VIMAX_WEB_PORT"
+echo
+echo "Speed tips:"
+echo "  - Keep THIS Termux screen open (or split-screen) while using the app."
+echo "    Android freezes backgrounded apps, which stalls the engine."
+echo "  - Termux -> App info -> Battery -> allow background activity / unrestricted."
+echo "  - The first message after starting is always slower (the AI loads)."
 echo "Press Ctrl+C to stop."
 exec node "$REPO_DIR/web/server.mjs"
