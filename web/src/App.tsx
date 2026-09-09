@@ -780,8 +780,8 @@ function SettingsView() {
     setStatus('');
     const base = {
       google: {
-        llm: {model_provider: 'openai', model: 'gemini-2.5-flash', base_url: 'https://generativelanguage.googleapis.com/v1beta/openai'},
-        image: {provider: 'google', model: 'gemini-2.5-flash-image', base_url: ''},
+        llm: {model_provider: 'openai', model: 'gemini-3.6-flash', base_url: 'https://generativelanguage.googleapis.com/v1beta/openai'},
+        image: {provider: 'google', model: 'gemini-3.1-flash-image', base_url: ''},
         video: {provider: 'google', model: 'veo-3.1-generate-preview', base_url: ''},
       },
       openrouter: {

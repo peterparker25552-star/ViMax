@@ -581,7 +581,7 @@ def _build_image_generator() -> ImageGeneratorNanobananaYunwuAPI | ImageGenerato
     if provider == "google":
         from tools.image_generator_nanobanana_google_api import ImageGeneratorNanobananaGoogleAPI
 
-        return ImageGeneratorNanobananaGoogleAPI(api_key=api_key)
+        return ImageGeneratorNanobananaGoogleAPI(api_key=api_key, model=model)
     if provider == "openrouter":
         return ImageGeneratorOpenRouterAPI(api_key=api_key, model=model, base_url=base_url)
     return ImageGeneratorNanobananaYunwuAPI(api_key=api_key, model=model, base_url=base_url)

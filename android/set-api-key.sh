@@ -11,19 +11,11 @@
 set -euo pipefail
 cd "$(cd "$(dirname "$0")/.." && pwd)"
 
-printf 'Paste your Google AI API key (input hidden), then press Enter: '
+printf 'Paste your Google AI API key (input hidden), then press Enter.\n(If a key is already saved, just press Enter to keep it): '
 read -rs KEY
 echo
 
 KEY="$(printf '%s' "$KEY" | tr -d '\r\n' | xargs 2>/dev/null || printf '%s' "$KEY")"
-if [ -z "$KEY" ]; then
-  echo "No key entered — nothing saved."
-  exit 1
-fi
-case "$KEY" in
-  AIza*) ;;
-  *) echo "note: Google AI keys normally start with 'AIza' — saving anyway." ;;
-esac
 
 KEY="$KEY" python3 - <<'PY'
 import os
@@ -34,7 +26,7 @@ try:
 except ImportError:
     raise SystemExit("pyyaml is missing — run: pip install pyyaml")
 
-key = os.environ["KEY"].strip()
+key = os.environ.get("KEY", "").strip()
 path = Path("configs/agent.local.yaml")
 data = {}
 if path.exists():
@@ -46,22 +38,41 @@ if path.exists():
 # but any model/base_url the user already chose is preserved.
 llm = data.get("llm") if isinstance(data.get("llm"), dict) else {}
 llm.setdefault("model_provider", "openai")
-llm.setdefault("model", "gemini-2.5-flash")
+llm.setdefault("model", "gemini-3.6-flash")
 llm.setdefault("base_url", "https://generativelanguage.googleapis.com/v1beta/openai")
-llm["api_key"] = key
+if key:
+    llm["api_key"] = key
+elif not llm.get("api_key"):
+    raise SystemExit("No key entered and no key saved yet — paste your API key from https://aistudio.google.com/apikey")
 data["llm"] = llm
 
 # Image/video default to Google when not configured. The engine reuses the
 # LLM key for them automatically, so no extra keys are needed here.
 image = data.get("image") if isinstance(data.get("image"), dict) else {}
 image.setdefault("provider", "google")
-image.setdefault("model", "gemini-2.5-flash-image")
+image.setdefault("model", "gemini-3.1-flash-image")
 data["image"] = image
 
 video = data.get("video") if isinstance(data.get("video"), dict) else {}
 video.setdefault("provider", "google")
 video.setdefault("model", "veo-3.1-generate-preview")
 data["video"] = video
+
+# Migrate retired Google model names (e.g. "models/gemini-2.5-flash is no
+# longer available to new users"). Only Gemini 2.5 defaults are bumped;
+# custom models from other providers are left untouched.
+MIGRATIONS = {
+    "llm": {"gemini-3.6-flash", "gemini-2.5-flash"},
+    "image": {"gemini-3.1-flash-image", "gemini-2.5-flash-image"},
+}
+current_llm = str(llm.get("model") or "")
+if current_llm in MIGRATIONS["llm"] - {"gemini-3.6-flash"}:
+    llm["model"] = "gemini-3.6-flash"
+    print(f"migrated llm model: {current_llm} -> gemini-3.6-flash")
+current_image = str(image.get("model") or "")
+if current_image in MIGRATIONS["image"] - {"gemini-3.1-flash-image"}:
+    image["model"] = "gemini-3.1-flash-image"
+    print(f"migrated image model: {current_image} -> gemini-3.1-flash-image")
 
 path.parent.mkdir(parents=True, exist_ok=True)
 path.write_text(yaml.safe_dump(data, sort_keys=False), encoding="utf-8")
