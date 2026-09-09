@@ -71,9 +71,10 @@ class SceneExtractor:
             api_key=api_key,
             base_url=base_url,
             model_provider="openai",
-        )
+        max_retries=4,)
 
     @retry(
+        wait=wait_exponential(multiplier=1, min=4, max=45),
         stop=stop_after_attempt(5),
         after=lambda retry_state: logging.warning(f"Retrying SceneExtractor.get_next_scene due to error: {retry_state.outcome.exception()}"),
     )

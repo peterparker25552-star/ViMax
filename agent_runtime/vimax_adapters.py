@@ -566,7 +566,7 @@ def _build_chat_model() -> Any:
         api_key=api_key,
         base_url=llm_base_url(),
         timeout=_llm_request_timeout_seconds(),
-        max_retries=0,
+        max_retries=4,
         max_completion_tokens=_narrative_max_tokens(),
     )
 

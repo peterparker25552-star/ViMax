@@ -28,7 +28,7 @@ class ImageGeneratorNanobananaGoogleAPI:
             api_key=api_key,
         )
 
-    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=1, max=10), after=after_func, reraise=True)
+    @retry(stop=stop_after_attempt(5), wait=wait_exponential(multiplier=1, min=4, max=60), after=after_func, reraise=True)
     async def generate_single_image(
         self,
         prompt: str,

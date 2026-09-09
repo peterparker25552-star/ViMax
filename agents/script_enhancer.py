@@ -84,10 +84,11 @@ class ScriptEnhancer:
             model_provider=model_provider,
             base_url=base_url,
             api_key=api_key,
-        )
+        max_retries=4,)
 
     @retry(
-        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=4, max=45),
+        stop=stop_after_attempt(5),
         after=lambda retry_state: logging.warning(f"Retrying enhance_script due to error: {retry_state.outcome.exception()}"),
     )
     async def enhance_script(

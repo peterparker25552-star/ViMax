@@ -146,7 +146,8 @@ class ReferenceImageSelector:
 
 
     @retry(
-        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=4, max=45),
+        stop=stop_after_attempt(5),
         after=after_func,
     )
     async def select_reference_images_and_generate_prompt(

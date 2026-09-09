@@ -175,7 +175,8 @@ class StoryboardArtist:
         self.chat_model = chat_model
 
 
-    @retry(stop=stop_after_attempt(3), after=after_func)
+    @retry(wait=wait_exponential(multiplier=1, min=4, max=45),
+        stop=stop_after_attempt(5), after=after_func)
     async def design_storyboard(
         self,
         script: str,
@@ -210,7 +211,8 @@ class StoryboardArtist:
 
 
 
-    @retry(stop=stop_after_attempt(3), after=after_func)
+    @retry(wait=wait_exponential(multiplier=1, min=4, max=45),
+        stop=stop_after_attempt(5), after=after_func)
     async def decompose_visual_description(
         self,
         shot_brief_desc: ShotBriefDescription,

@@ -89,7 +89,7 @@ class EventExtractor:
             model_provider="openai",
             api_key=api_key,
             base_url=base_url,
-        )
+        max_retries=4,)
         self.parser = PydanticOutputParser(pydantic_object=Event)
 
 
@@ -121,7 +121,8 @@ class EventExtractor:
 
 
     @retry(
-        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=4, max=45),
+        stop=stop_after_attempt(5),
         after=lambda retry_state: logging.warning(f"Retrying extract_next_event due to error: {retry_state.outcome.exception()}"),
     )
     def extract_next_event(

@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from typing import Any
 from uuid import uuid4
 
-from openai import APIConnectionError, APITimeoutError, AsyncOpenAI
+from openai import APIConnectionError, APITimeoutError, AsyncOpenAI, RateLimitError
 
 from .config import llm_api_key, llm_base_url, llm_model, llm_reasoning_effort
 from .models import ToolCall
@@ -16,6 +16,38 @@ from .models import ToolCall
 LLM_MAX_ATTEMPTS = 3
 LLM_RETRY_BACKOFF_SECONDS = (1.0, 4.0)
 LLM_REQUEST_TIMEOUT_SECONDS = 300.0
+# Rate limits need far more patience than transient errors: free tiers reset
+# per-minute (or daily) quotas, and providers say how long via Retry-After.
+RATE_LIMIT_MAX_ATTEMPTS = 5
+RATE_LIMIT_BACKOFF_SECONDS = (5.0, 15.0, 30.0, 60.0, 90.0)
+
+
+def _is_rate_limit_error(exc: BaseException) -> bool:
+    if isinstance(exc, RateLimitError):
+        return True
+    status = getattr(exc, "status_code", None)
+    try:
+        return status is not None and int(status) == 429
+    except (TypeError, ValueError):
+        return False
+
+
+def _retry_after_seconds(exc: BaseException) -> float | None:
+    """Retry-After header from the provider, clamped to 1-120 seconds."""
+    response = getattr(exc, "response", None)
+    headers = getattr(response, "headers", None)
+    if headers is None:
+        return None
+    try:
+        value = headers.get("retry-after")
+    except Exception:
+        return None
+    if not value:
+        return None
+    try:
+        return max(1.0, min(120.0, float(value)))
+    except (TypeError, ValueError):
+        return None
 
 
 def _is_reasoning_effort_rejection(exc: BaseException) -> bool:
@@ -87,14 +119,33 @@ class OpenAICompatibleLLM:
         raise last_shape_error
 
     async def _create_completion_with_retries(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]] | None, tool_choice: str | None) -> Any:
-        for attempt in range(LLM_MAX_ATTEMPTS):
+        attempt = 0
+        rate_limit_attempts = 0
+        while True:
             try:
                 return await self._create_completion(messages, tools, tool_choice)
             except Exception as exc:
-                if isinstance(exc, LLMResponseShapeError) or attempt == LLM_MAX_ATTEMPTS - 1 or not _is_retryable_llm_error(exc):
+                if isinstance(exc, LLMResponseShapeError):
                     raise
-                delay = LLM_RETRY_BACKOFF_SECONDS[min(attempt, len(LLM_RETRY_BACKOFF_SECONDS) - 1)]
-                logging.warning("LLM call failed (%s); retrying in %.1fs (attempt %d/%d)", exc, delay, attempt + 1, LLM_MAX_ATTEMPTS)
+                if _is_rate_limit_error(exc):
+                    rate_limit_attempts += 1
+                    if rate_limit_attempts > RATE_LIMIT_MAX_ATTEMPTS:
+                        raise
+                    delay = _retry_after_seconds(exc) or RATE_LIMIT_BACKOFF_SECONDS[
+                        min(rate_limit_attempts - 1, len(RATE_LIMIT_BACKOFF_SECONDS) - 1)
+                    ]
+                    logging.warning(
+                        "LLM rate limited by the provider; waiting %.0fs before retry (%d/%d). "
+                        "Free tiers reset per-minute quotas — this resolves itself.",
+                        delay, rate_limit_attempts, RATE_LIMIT_MAX_ATTEMPTS,
+                    )
+                    await asyncio.sleep(delay)
+                    continue
+                attempt += 1
+                if attempt >= LLM_MAX_ATTEMPTS or not _is_retryable_llm_error(exc):
+                    raise
+                delay = LLM_RETRY_BACKOFF_SECONDS[min(attempt - 1, len(LLM_RETRY_BACKOFF_SECONDS) - 1)]
+                logging.warning("LLM call failed (%s); retrying in %.1fs (attempt %d/%d)", exc, delay, attempt, LLM_MAX_ATTEMPTS)
                 await asyncio.sleep(delay)
 
     async def _create_completion(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]] | None, tool_choice: str | None) -> Any:

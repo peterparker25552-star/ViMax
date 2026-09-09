@@ -91,7 +91,7 @@ class NovelCompressor:
             api_key=api_key,
             base_url=base_url,
             model_provider="openai",
-        )
+        max_retries=4,)
 
         self.splitter = RecursiveCharacterTextSplitter(
             chunk_size=chunk_size,

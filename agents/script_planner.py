@@ -342,7 +342,7 @@ class ScriptPlanner:
             model_provider=model_provider,
             base_url=base_url,
             api_key=api_key,
-        )
+        max_retries=4,)
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, max=30), after=after_func)
     def plan_script(

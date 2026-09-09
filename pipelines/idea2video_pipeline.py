@@ -46,7 +46,8 @@ class Idea2VideoPipeline:
             config = yaml.safe_load(f)
 
         chat_model_args = resolve_chat_model_config(config["chat_model"]["init_args"])
-        chat_model = init_chat_model(**chat_model_args)
+        chat_model = init_chat_model(**chat_model_args,
+        max_retries=4,)
         backend = RenderBackend.from_config(config)
 
         return cls(

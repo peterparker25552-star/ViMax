@@ -70,7 +70,8 @@ class CharacterExtractor:
         self.chat_model = chat_model
 
     @retry(
-        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=4, max=45),
+        stop=stop_after_attempt(5),
         after=after_func,
     )
     async def extract_characters(self, script: str) -> List[CharacterInScene]:

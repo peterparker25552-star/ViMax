@@ -149,10 +149,11 @@ class GlobalInformationPlanner:
             model_provider="openai",
             api_key=api_key,
             base_url=base_url,
-        )
+        max_retries=4,)
     
     @retry(
-        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=4, max=45),
+        stop=stop_after_attempt(5),
         after=lambda retry_state: logging.warning(f"Retrying due to {retry_state.outcome.exception()}"),
     )
     async def merge_characters_across_scenes_in_event(
@@ -214,7 +215,8 @@ class GlobalInformationPlanner:
         return characters_in_event
 
     @retry(
-        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=4, max=45),
+        stop=stop_after_attempt(5),
         after=lambda retry_state: logging.warning(f"Retrying due to {retry_state.outcome.exception()}"),
     )
     def merge_characters_to_existing_characters_in_novel(
